@@ -30,4 +30,4 @@ if st.button("Analyze AI Likelihood"):
             mime="application/pdf",
         )
     else:
-        st.warning("Please paste some code to ana
+        st.warning("Please paste some code to analyze.")
