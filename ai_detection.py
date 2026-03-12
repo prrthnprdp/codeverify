@@ -1,7 +1,3 @@
-ai_detection.py
-# Rule-based AI-likelihood detection using indentation uniformity, comment density,
-# repetitive control structures, and statistical regularity.
-
 import re
 from statistics import mean, stdev
 
@@ -27,20 +23,14 @@ def analyze_ai_likelihood(code: str):
     comment_ratio = len(comment_lines) / len(lines) if lines else 0
     repetition_ratio = repetitive_patterns / max(len(non_empty), 1)
 
-    # Heuristic scoring:
-    # - Lower indentation std -> higher AI-likelihood
-    # - Higher comment ratio -> higher AI-likelihood
-    # - Higher repetition ratio -> higher AI-likelihood
-    # - Lower line length std -> higher AI-likelihood
-    indent_component = (1 - min(indent_std / 8, 1))  # cap influence
-    comment_component = min(comment_ratio * 2, 1)    # cap at 100%
+    indent_component = (1 - min(indent_std / 8, 1))
+    comment_component = min(comment_ratio * 2, 1)
     repetition_component = min(repetition_ratio * 3, 1)
     length_reg_component = (1 - min(len_std / max(avg_len, 1), 1))
 
     raw_score = 100 * (0.35 * indent_component + 0.25 * comment_component + 0.25 * repetition_component + 0.15 * length_reg_component)
     score = round(max(0, min(raw_score, 100)), 2)
 
-    # Suspicious preview: show first few comment lines and repetitive structures
     suspicious_blocks = []
     suspicious_blocks.extend(comment_lines[:5])
     for line in lines:

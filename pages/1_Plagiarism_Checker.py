@@ -1,69 +1,35 @@
 import streamlit as st
-from plagiarism import compare_codes
-from pdf_report import generate_pdf_report_bytes
-from utils import load_code_from_file
+from plagiarism import analyze_plagiarism, compare_line_by_line
+from utils import load_code_from_file, safe_preview
 
 st.set_page_config(page_title="Plagiarism Checker", layout="wide")
 st.title("🔍 Plagiarism Checker")
 
-st.markdown("""
-You can either **upload a file** or **paste/type code manually** for both the original and suspected code. If both are provided, the manually entered code will be used.
-""")
+uploaded_files = st.file_uploader("Upload Python files", type=["py"], accept_multiple_files=True)
+pasted_code = st.text_area("Or paste your Python code here", height=240)
 
-# --- Original Code Input ---
-st.subheader("📄 Original Code")
-col1, col2 = st.columns([2, 1])
-with col1:
-    original_code_text = st.text_area("Paste or type the original code here:", height=300, key="original_code")
-with col2:
-    original_file = st.file_uploader("Or upload original code file (.py, .c, .cpp)", type=["py", "c", "cpp"], key="original_file")
+if st.button("Analyze Plagiarism"):
+    code_sources = []
+    if uploaded_files:
+        for uf in uploaded_files:
+            content = load_code_from_file(uf)
+            if content.strip():
+                code_sources.append((uf.name, content))
+    if pasted_code.strip():
+        code_sources.append(("pasted_code.py", pasted_code))
 
-# --- Suspected Code Input ---
-st.subheader("📄 Suspected Code")
-col3, col4 = st.columns([2, 1])
-with col3:
-    suspected_code_text = st.text_area("Paste or type the suspected code here:", height=300, key="suspected_code")
-with col4:
-    suspected_file = st.file_uploader("Or upload suspected code file (.py, .c, .cpp)", type=["py", "c", "cpp"], key="suspected_file")
-
-# --- Language Selection ---
-language = st.selectbox("Select Programming Language", ["Python", "C", "C++"])
-
-# --- Compare Button ---
-if st.button("Compare for Plagiarism"):
-    original_code = original_code_text.strip() if original_code_text.strip() else (
-        load_code_from_file(original_file) if original_file else "")
-    suspected_code = suspected_code_text.strip() if suspected_code_text.strip() else (
-        load_code_from_file(suspected_file) if suspected_file else "")
-
-    if not original_code or not suspected_code:
-        st.warning("Please provide both original and suspected code — either by typing or uploading files.")
+    if not code_sources:
+        st.warning("Please upload or paste code.")
     else:
-        with st.spinner(f"Analyzing {language} code for plagiarism..."):
-            result = compare_codes(original_code, suspected_code, language)
-
-        st.success("Analysis complete!")
+        combined_code = "\n\n".join([src for _, src in code_sources])
+        result = analyze_plagiarism(combined_code)
 
         st.metric("Plagiarism Score", f"{result['score']}%")
-        st.subheader("Explanation")
-        st.text(result["explanation"])
+        st.write(result["explanation"])
+        st.subheader("Suspicious Sections")
+        st.code(result["suspicious"], language="python")
 
-        st.subheader("Similar Code Sections")
-        st.code(result["diff_preview"], language="text")
-
-        st.subheader("📄 Download PDF Report")
-        pdf_bytes = generate_pdf_report_bytes(
-            original_file.name if original_file else "Original_Code_Input",
-            suspected_file.name if suspected_file else "Suspected_Code_Input",
-            language,
-            result
-        )
-        st.download_button(
-            label="Download Report",
-            data=pdf_bytes,
-            file_name="CodeVerify_Report.pdf",
-            mime="application/pdf"
-        )
-
-st.markdown("---")
-st.caption("CodeVerify uses only logical and statistical methods. No AI/ML or external services are used. Designed for academic integrity and offline use.")
+        if len(code_sources) > 1:
+            summary = compare_line_by_line(code_sources)
+            st.subheader("Line-by-line Comparison")
+            st.code(summary, language="text")
