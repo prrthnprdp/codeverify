@@ -125,7 +125,7 @@ def analyze_plagiarism(code: str):
     # Normalize formatting and comments
     normalized = strip_comments_and_whitespace(code)
 
-    # Tokenization with identifier normalization
+    # Tokenization with identifier normalizationdir
     tokens = tokenize_code_filtered(normalized)
 
     # AST structural signature with name normalization
