@@ -1,8 +1,4 @@
-# utils.py
-# Utility helpers for safe file loading and preview formatting.
-
 def load_code_from_file(uploaded_file):
-    """Safely read uploaded file content as UTF-8 text."""
     try:
         data = uploaded_file.read()
         if isinstance(data, bytes):
@@ -36,4 +32,6 @@ def detect_language(filename):
         return "C"
     elif filename.endswith(".cpp"):
         return "C++"
+
+    return "Unknown"
     return "Unknown"

@@ -1,6 +1,7 @@
 import streamlit as st
 from plagiarism import analyze_plagiarism, compare_line_by_line
-from utils import load_code_from_file, safe_preview
+from utils import load_code_from_file
+from pdf_report import generate_pdf_report_bytes
 
 st.set_page_config(page_title="Plagiarism Checker", layout="wide")
 st.title("🔍 Plagiarism Checker")
@@ -29,7 +30,23 @@ if st.button("Analyze Plagiarism"):
         st.subheader("Suspicious Sections")
         st.code(result["suspicious"], language="python")
 
+        line_compare_summary = ""
         if len(code_sources) > 1:
-            summary = compare_line_by_line(code_sources)
+            line_compare_summary = compare_line_by_line(code_sources)
             st.subheader("Line-by-line Comparison")
-            st.code(summary, language="text")
+            st.code(line_compare_summary, language="text")
+
+        # PDF report
+        pdf_bytes = generate_pdf_report_bytes(
+            code_sources=code_sources,
+            combined_code=combined_code,
+            plagiarism_result=result,
+            ai_result={"score": 0, "explanation": "", "suspicious": ""},
+            line_compare_summary=line_compare_summary
+        )
+        st.download_button(
+            label="Download Plagiarism Report (PDF)",
+            data=pdf_bytes,
+            file_name="Plagiarism_Report.pdf",
+            mime="application/pdf",
+        )

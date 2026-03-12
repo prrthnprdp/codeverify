@@ -1,85 +1,82 @@
-# plagiarism.py
-# Logical/statistical plagiarism detection using difflib, tokenize, ast, re, statistics.
-# Ignores variable renaming and formatting changes via AST normalization and token filtering.
-
 import difflib
+import re
 import tokenize
 import io
 import ast
-import re
-from statistics import mean
 
-# --- Normalization helpers ---
+def normalize_whitespace(code):
+    return re.sub(r'\s+', ' ', code.strip())
 
-def strip_comments_and_whitespace(code: str) -> str:
-    """Remove comments and normalize whitespace to reduce formatting influence."""
-    # Remove inline comments
-    code_no_comments = re.sub(r"#.*", "", code)
-    # Normalize whitespace
-    code_norm = re.sub(r"\s+", " ", code_no_comments)
-    return code_norm.strip()
+def strip_comments(code, language):
+    if language == "Python":
+        return re.sub(r'#.*', '', code)
+    elif language in ["C", "C++"]:
+        code = re.sub(r'//.*', '', code)
+        code = re.sub(r'/\*.*?\*/', '', code, flags=re.DOTALL)
+        return code
+    return code
 
-class NameNormalizer(ast.NodeTransformer):
-    """
-    AST transformer that replaces variable/function/class names with generic placeholders.
-    This helps ignore variable renaming during structural comparison.
-    """
-    def visit_Name(self, node):
-        return ast.copy_location(ast.Name(id="VAR", ctx=node.ctx), node)
+def tokenize_code(code, language):
+    if language == "Python":
+        try:
+            tokens = []
+            for tok in tokenize.generate_tokens(io.StringIO(code).readline):
+                if tok.type == tokenize.NAME:
+                    tokens.append("IDENT")
+                elif tok.type not in (tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT, tokenize.NL):
+                    tokens.append(tok.string)
+            return tokens
+        except Exception:
+            return []
+    elif language in ["C", "C++"]:
+        code = strip_comments(code, language)
+        code = normalize_whitespace(code)
+        tokens = re.findall(r'\b(?:int|float|char|if|else|for|while|return|void|main|printf|scanf|struct|class|include|using|namespace|new|delete|cout|cin|std)\b|\W', code)
+        return [t for t in tokens if t.strip()]
+    return []
 
-    def visit_arg(self, node):
-        node.arg = "ARG"
-        return node
+def extract_structure(code, language):
+    if language == "Python":
+        try:
+            tree = ast.parse(code)
+            node_types = [type(n).__name__ for n in ast.walk(tree)]
+            return " ".join(sorted(node_types))
+        except Exception:
+            return ""
+    elif language in ["C", "C++"]:
+        patterns = [
+            r'\bfor\s*\(.*?\)', r'\bwhile\s*\(.*?\)', r'\bif\s*\(.*?\)', r'\bswitch\s*\(.*?\)',
+            r'\bstruct\b', r'\bclass\b', r'\breturn\b', r'\bmain\s*\(.*?\)', r'\binclude\b'
+        ]
+        structure = []
+        for pattern in patterns:
+            matches = re.findall(pattern, code)
+            structure.extend([pattern] * len(matches))
+        return " ".join(structure)
+    return ""
 
-    def visit_FunctionDef(self, node):
-        node.name = "FUNC"
-        self.generic_visit(node)
-        return node
+def similarity_ratio(a, b):
+    return difflib.SequenceMatcher(None, a, b).ratio()
 
-    def visit_ClassDef(self, node):
-        node.name = "CLASS"
-        self.generic_visit(node)
-        return node
+def compare_codes(code_a, code_b, language):
+    code_a_clean = strip_comments(code_a, language)
+    code_b_clean = strip_comments(code_b, language)
 
-def ast_structure_signature(code: str) -> str:
-    """
-    Parse code to AST, normalize names, and return a structural signature string.
-    If parsing fails, return an empty signature.
-    """
-    try:
-        tree = ast.parse(code)
-        normalizer = NameNormalizer()
-        normalized_tree = normalizer.visit(tree)
-        ast.fix_missing_locations(normalized_tree)
-        # Signature: sequence of node types
-        node_types = [type(n).__name__ for n in ast.walk(normalized_tree)]
-        return " ".join(sorted(node_types))
-    except Exception:
-        return ""
+    lines_a = [l.strip() for l in code_a_clean.splitlines() if l.strip()]
+    lines_b = [l.strip() for l in code_b_clean.splitlines() if l.strip()]
+    line_sim = similarity_ratio(lines_a, lines_b)
 
-# --- Tokenization helpers ---
+    tokens_a = tokenize_code(code_a, language)
+    tokens_b = tokenize_code(code_b, language)
+    token_sim = similarity_ratio(tokens_a, tokens_b)
 
-def tokenize_code_filtered(code: str):
-    """
-    Tokenize code and filter out formatting tokens.
-    Replace identifiers with a generic token to reduce renaming impact.
-    """
-    tokens = []
-    try:
-        for tok in tokenize.generate_tokens(io.StringIO(code).readline):
-            toknum, tokval = tok.type, tok.string
-            if toknum in (tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT, tokenize.NL):
-                continue
-            # Replace identifiers with a placeholder
-            if toknum == tokenize.NAME:
-                tokens.append("IDENT")
-            else:
-                tokens.append(tokval)
-    except Exception:
-        pass
-    return tokens
+    struct_a = extract_structure(code_a, language)
+    struct_b = extract_structure(code_b, language)
+    struct_sim = similarity_ratio(struct_a, struct_b)
 
-# --- Core analysis ---
+
+    score = round(100 * (0.4 * line_sim + 0.4 * token_sim + 0.2 * struct_sim), 2)
+
 
 def token_similarity_ratio(tokens_a, tokens_b) -> float:
     """Compute difflib ratio between token sequences."""
@@ -122,17 +119,14 @@ def analyze_plagiarism(code: str):
     - Line-by-line comparison (exposed via compare_line_by_line in app)
     Returns score, explanation, and suspicious snippet preview.
     """
-    # Normalize formatting and comments
+
     normalized = strip_comments_and_whitespace(code)
 
-    # Tokenization with identifier normalizationdir
     tokens = tokenize_code_filtered(normalized)
 
-    # AST structural signature with name normalization
     struct_sig = ast_structure_signature(code)
 
-    # Reference corpus (simple baseline to avoid external data)
-    # In academic use, this can be replaced with instructor-provided references offline.
+    
     reference_snippets = [
         "def add(a, b): return a + b",
         "class Example:\n    def method(self, x):\n        for i in range(x):\n            print(i)",
@@ -147,14 +141,14 @@ def analyze_plagiarism(code: str):
         token_ratios.append(token_similarity_ratio(tokens, ref_tokens))
         struct_ratios.append(structural_similarity_ratio(struct_sig, ref_sig))
 
-    # Aggregate similarity
+    
     token_sim = max(token_ratios) if token_ratios else 0.0
     struct_sim = max(struct_ratios) if struct_ratios else 0.0
 
-    # Weighted score: emphasize tokens but include structure
+    
     score = round(100 * (0.6 * token_sim + 0.4 * struct_sim), 2)
 
-    # Suspicious preview: show top overlapping lines via difflib against best reference
+    
     best_ref_idx = 0
     if token_ratios:
         best_ref_idx = max(range(len(reference_snippets)), key=lambda i: (0.6 * token_ratios[i] + 0.4 * struct_ratios[i]))
@@ -172,14 +166,19 @@ def analyze_plagiarism(code: str):
             break
     suspicious = "\n".join(suspicious_lines)
 
+
     explanation = (
-        f"- Token similarity (identifier-normalized): {round(token_sim * 100, 2)}%\n"
-        f"- Structural similarity (AST-normalized): {round(struct_sim * 100, 2)}%\n"
-        f"- Method: difflib for sequence ratios, AST normalization to ignore renaming, token filtering to reduce formatting impact."
+        f"- Line similarity: {round(line_sim * 100, 2)}%\n"
+        f"- Token similarity: {round(token_sim * 100, 2)}%\n"
+        f"- Structural similarity: {round(struct_sim * 100, 2)}%\n"
+        f"- Weighted score: 40% lines + 40% tokens + 20% structure"
     )
+
+    diff = difflib.unified_diff(lines_a, lines_b, lineterm="")
+    preview = "\n".join(list(diff)[:30])
 
     return {
         "score": score,
         "explanation": explanation,
-        "suspicious": suspicious,
+        "diff_preview": preview
     }

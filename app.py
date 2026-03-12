@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(page_title="CodeVerify", layout="centered")
 
-st.title("👋 Welcome to CodeVerify")
+st.title("📘 CodeVerify: Academic Code Plagiarism & AI Detection")
 st.markdown("Choose a tool to get started:")
 
 col1, col2 = st.columns(2)
