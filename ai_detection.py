@@ -1,4 +1,4 @@
-# ai_detection.py
+ai_detection.py
 # Rule-based AI-likelihood detection using indentation uniformity, comment density,
 # repetitive control structures, and statistical regularity.
 
