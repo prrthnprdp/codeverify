@@ -1,102 +1,43 @@
-import re
-from statistics import mean, stdev
+import streamlit as st
+from ai_detection import analyze_ai_likelihood
+from utils import load_code_from_file
 
-def analyze_ai_likelihood(code: str):
+st.set_page_config(page_title="AI Detection", layout="wide")
+st.title("🤖 AI-Generated Code Detector")
 
-    lines = code.splitlines()
-    non_empty = [l for l in lines if l.strip()]
+st.markdown("""
+Upload or paste Python code to analyze its likelihood of being AI-generated.
+The detector uses heuristic methods based on code patterns, uniformity, and structure.
+""")
 
-    # ---------- Indentation Analysis ----------
-    indent_lengths = [len(re.match(r"^\s*", line).group()) for line in non_empty]
-    indent_std = stdev(indent_lengths) if len(indent_lengths) > 1 else 0
+# --- Code Input ---
+st.subheader("📝 Input Code")
+col1, col2 = st.columns([2, 1])
+with col1:
+    code_text = st.text_area("Paste or type your Python code here:", height=300, key="ai_code")
+with col2:
+    code_file = st.file_uploader("Or upload a Python file (.py)", type=["py"], key="ai_file")
 
-    # ---------- Comment Detection ----------
-    comment_lines = []
-    in_block = False
+# --- Analyze Button ---
+if st.button("Analyze for AI Patterns"):
+    code = code_text.strip() if code_text.strip() else (
+        load_code_from_file(code_file) if code_file else "")
 
-    for line in lines:
-        stripped = line.strip()
+    if not code:
+        st.warning("Please provide code — either by typing or uploading a file.")
+    else:
+        with st.spinner("Analyzing code for AI-generated patterns..."):
+            result = analyze_ai_likelihood(code)
 
-        if stripped.startswith("#") or stripped.startswith("//"):
-            comment_lines.append(line)
+        st.success("Analysis complete!")
 
-        if "/*" in stripped:
-            in_block = True
-            comment_lines.append(line)
+        st.metric("AI Likelihood Score", f"{result['score']}%")
+        st.subheader("📊 Explanation")
+        st.text(result["explanation"])
 
-        elif "*/" in stripped:
-            in_block = False
-            comment_lines.append(line)
+        if result.get("suspicious"):
+            st.subheader("🚨 Suspicious Code Sections")
+            st.code(result["suspicious"], language="python")
 
-        elif in_block:
-            comment_lines.append(line)
-
-    comment_ratio = len(comment_lines) / max(len(lines), 1)
-
-    # ---------- Control Structure Detection ----------
-    control_pattern = r"\b(for|while|if|elif|else|switch|case|try|except)\b"
-    control_count = sum(1 for line in lines if re.search(control_pattern, line))
-    repetition_ratio = control_count / max(len(non_empty), 1)
-
-    # ---------- Line Length Analysis ----------
-    lengths = [len(l) for l in non_empty]
-    avg_len = mean(lengths) if lengths else 0
-    len_std = stdev(lengths) if len(lengths) > 1 else 0
-
-    # ---------- Identifier Entropy ----------
-    keywords = {
-        "for","while","if","else","elif","switch","case","try","except",
-        "return","int","float","char","void","include","print"
-    }
-
-    identifiers = [
-        word for word in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", code)
-        if word not in keywords
-    ]
-
-    unique_ids = set(identifiers)
-    entropy = len(unique_ids) / max(len(identifiers), 1)
-
-    # ---------- Components ----------
-    indent_component = 1 - min(indent_std / 8, 1)
-    comment_component = min(comment_ratio * 2, 1)
-    repetition_component = min(repetition_ratio * 2, 1)
-    length_component = 1 - min(len_std / max(avg_len, 1), 1)
-    entropy_component = 1 - entropy
-
-    # ---------- Final Score ----------
-    raw_score = 100 * (
-        0.2 * indent_component +
-        0.2 * comment_component +
-        0.2 * repetition_component +
-        0.2 * length_component +
-        0.2 * entropy_component
-    )
-
-    score = round(max(0, min(raw_score, 100)), 2)
-
-    # ---------- Suspicious Snippets ----------
-    suspicious_lines = []
-
-    for line in lines:
-        if re.search(control_pattern, line) or line in comment_lines:
-            suspicious_lines.append(line)
-
-        if len(suspicious_lines) >= 10:
-            break
-
-    suspicious = "\n".join(suspicious_lines)
-
-    explanation = (
-        f"Indentation variation: {round(indent_std,2)}\n"
-        f"Comment ratio: {round(comment_ratio*100,2)}%\n"
-        f"Control structures: {control_count}\n"
-        f"Average line length: {round(avg_len,2)}\n"
-        f"Identifier entropy: {round(entropy,2)}"
-    )
-
-    return {
-        "score": score,
-        "explanation": explanation,
-        "suspicious": suspicious
-    }
+st.markdown("---")
+st.caption("CodeVerify AI Detector uses heuristic patterns only. No AI/ML models or external APIs. For educational and academic integrity use.")

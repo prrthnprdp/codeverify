@@ -1,4 +1,4 @@
-ai_detection.py
+# # ai_detection.py
 # Rule-based AI-likelihood detection using indentation uniformity, comment density,
 # repetitive control structures, and statistical regularity.
 
@@ -27,16 +27,19 @@ def analyze_ai_likelihood(code: str):
     comment_ratio = len(comment_lines) / len(lines) if lines else 0
     repetition_ratio = repetitive_patterns / max(len(non_empty), 1)
 
-    # Heuristic scoring:
-    # - Lower indentation std -> higher AI-likelihood
-    # - Higher comment ratio -> higher AI-likelihood
-    # - Higher repetition ratio -> higher AI-likelihood
-    # - Lower line length std -> higher AI-likelihood
-    indent_component = (1 - min(indent_std / 8, 1))  # cap influence
-    comment_component = min(comment_ratio * 2, 1)    # cap at 100%
-    repetition_component = min(repetition_ratio * 3, 1)
-    length_reg_component = (1 - min(len_std / max(avg_len, 1), 1))
+    # Heuristic scoring - CALIBRATED FOR AI DETECTION:
+    # - Lower indentation std -> Higher AI-likelihood (AI code has uniform indentation)
+    # - Higher comment ratio -> Higher AI-likelihood (AI adds explanatory comments)
+    # - Higher repetition ratio -> Higher AI-likelihood (AI uses consistent patterns)
+    # - Lower line length std -> Higher AI-likelihood (AI maintains consistent formatting)
+    
+    # Balanced thresholds:
+    indent_component = max(0, 1 - (indent_std / 10))    # Moderate: expects some uniformity
+    comment_component = min(comment_ratio * 2.5, 1)     # Fair: 40% comments = high score
+    repetition_component = min(repetition_ratio * 3, 1) # Fair: more control structures = higher
+    length_reg_component = max(0, 1 - (len_std / max(avg_len, 1)))  # Original formula - good balance
 
+    # Well-balanced weights
     raw_score = 100 * (0.35 * indent_component + 0.25 * comment_component + 0.25 * repetition_component + 0.15 * length_reg_component)
     score = round(max(0, min(raw_score, 100)), 2)
 
