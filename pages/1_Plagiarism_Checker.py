@@ -1,9 +1,29 @@
 import streamlit as st
 from plagiarism import compare_codes
+from ai_detection import analyze_ai_likelihood
 from pdf_report import generate_pdf_report_bytes
 from utils import load_code_from_file
 
 st.set_page_config(page_title="Plagiarism Checker", layout="wide")
+
+st.markdown("""
+<style>
+    h1 {
+        font-size: 52px !important;
+    }
+    h3 {
+        font-size: 40px !important;
+    }
+    .stMarkdown p, .stMarkdown li {
+        font-size: 32px !important;
+        line-height: 1.4 !important;
+    }
+    [data-testid="stSidebar"] span, [data-testid="stSidebar"] p, [data-testid="stSidebar"] li, [data-testid="stSidebarNav"] li {
+        font-size: 32px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🔍 Plagiarism Checker")
 
 st.markdown("""
@@ -52,11 +72,16 @@ if st.button("Compare for Plagiarism"):
         st.code(result["diff_preview"], language="text")
 
         st.subheader("📄 Download PDF Report")
+        original_name = original_file.name if original_file else "Original_Code_Input"
+        suspected_name = suspected_file.name if suspected_file else "Suspected_Code_Input"
+        code_sources = [(original_name, original_code), (suspected_name, suspected_code)]
+        combined_code = original_code + "\n" + suspected_code
+        ai_result = analyze_ai_likelihood(combined_code)
         pdf_bytes = generate_pdf_report_bytes(
-            original_file.name if original_file else "Original_Code_Input",
-            suspected_file.name if suspected_file else "Suspected_Code_Input",
-            language,
-            result
+            code_sources,
+            combined_code,
+            result,
+            ai_result
         )
         st.download_button(
             label="Download Report",

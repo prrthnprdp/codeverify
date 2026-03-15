@@ -3,6 +3,25 @@ from ai_detection import analyze_ai_likelihood
 from utils import load_code_from_file
 
 st.set_page_config(page_title="AI Detection", layout="wide")
+
+st.markdown("""
+<style>
+    h1 {
+        font-size: 52px !important;
+    }
+    h3 {
+        font-size: 40px !important;
+    }
+    .stMarkdown p, .stMarkdown li {
+        font-size: 32px !important;
+        line-height: 1.4 !important;
+    }
+    [data-testid="stSidebar"] span, [data-testid="stSidebar"] p, [data-testid="stSidebar"] li, [data-testid="stSidebarNav"] li {
+        font-size: 32px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🤖 AI-Generated Code Detector")
 
 st.markdown("""

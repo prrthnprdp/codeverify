@@ -1,6 +1,7 @@
 # plagiarism.py
 # Logical/statistical plagiarism detection using difflib, tokenize, ast, re, statistics.
 # Ignores variable renaming and formatting changes via AST normalization and token filtering.
+# Uses structural boosting and power curve for accurate similarity scoring.
 
 import difflib
 import tokenize
@@ -9,15 +10,26 @@ import ast
 import re
 from statistics import mean
 
+
 # --- Normalization helpers ---
 
+def normalize_lines(code: str) -> list:
+    """Remove comments and normalize whitespace per-line (preserving line structure)."""
+    result = []
+    for line in code.splitlines():
+        # Remove inline comments
+        cleaned = re.sub(r"#.*", "", line)
+        # Normalize internal whitespace
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        if cleaned:
+            result.append(cleaned)
+    return result
+
+
 def strip_comments_and_whitespace(code: str) -> str:
-    """Remove comments and normalize whitespace to reduce formatting influence."""
-    # Remove inline comments
-    code_no_comments = re.sub(r"#.*", "", code)
-    # Normalize whitespace
-    code_norm = re.sub(r"\s+", " ", code_no_comments)
-    return code_norm.strip()
+    """Remove comments and normalize whitespace (single string, for tokenization)."""
+    lines = normalize_lines(code)
+    return "\n".join(lines)
 
 
 class NameNormalizer(ast.NodeTransformer):
@@ -34,6 +46,11 @@ class NameNormalizer(ast.NodeTransformer):
         self.generic_visit(node)
         return node
 
+    def visit_AsyncFunctionDef(self, node):
+        node.name = "FUNC"
+        self.generic_visit(node)
+        return node
+
     def visit_ClassDef(self, node):
         node.name = "CLASS"
         self.generic_visit(node)
@@ -41,14 +58,15 @@ class NameNormalizer(ast.NodeTransformer):
 
 
 def ast_structure_signature(code: str) -> str:
-    """Parse code to AST, normalize names, and return a structural signature string."""
+    """Parse code to AST, normalize names, and return an ordered structural signature."""
     try:
         tree = ast.parse(code)
         normalizer = NameNormalizer()
         normalized_tree = normalizer.visit(tree)
         ast.fix_missing_locations(normalized_tree)
+        # Preserve walk order (NOT sorted) to capture structural sequence
         node_types = [type(n).__name__ for n in ast.walk(normalized_tree)]
-        return " ".join(sorted(node_types))
+        return " ".join(node_types)
     except Exception:
         return ""
 
@@ -72,28 +90,49 @@ def tokenize_code_filtered(code: str):
 
 def similarity_ratio(a, b):
     """Compute difflib ratio between two sequences."""
+    if not a and not b:
+        return 0.0
     return difflib.SequenceMatcher(None, a, b).ratio()
 
 
 def compare_codes(code_a, code_b, language=None):
-    """Compare two code snippets and return plagiarism metrics."""
-    a_clean = strip_comments_and_whitespace(code_a)
-    b_clean = strip_comments_and_whitespace(code_b)
-
-    lines_a = [l.strip() for l in a_clean.splitlines() if l.strip()]
-    lines_b = [l.strip() for l in b_clean.splitlines() if l.strip()]
+    """
+    Compare two code snippets and return plagiarism metrics.
+    Uses structural boosting for rename-only plagiarism and a power curve
+    to amplify high-similarity results.
+    """
+    # --- Line-level similarity (per-line, not collapsed) ---
+    lines_a = normalize_lines(code_a)
+    lines_b = normalize_lines(code_b)
     line_sim = similarity_ratio(lines_a, lines_b)
 
-    tokens_a = tokenize_code_filtered(a_clean)
-    tokens_b = tokenize_code_filtered(b_clean)
+    # --- Token-level similarity (identifiers normalized to IDENT) ---
+    clean_a = strip_comments_and_whitespace(code_a)
+    clean_b = strip_comments_and_whitespace(code_b)
+    tokens_a = tokenize_code_filtered(clean_a)
+    tokens_b = tokenize_code_filtered(clean_b)
     token_sim = similarity_ratio(tokens_a, tokens_b)
 
+    # --- Structural similarity (AST with normalized names, ordered) ---
     struct_a = ast_structure_signature(code_a)
     struct_b = ast_structure_signature(code_b)
     struct_sim = similarity_ratio(struct_a, struct_b)
 
-    score = round(100 * (0.4 * line_sim + 0.4 * token_sim + 0.2 * struct_sim), 2)
+    # --- Weighted combination: structure-heavy to catch renames ---
+    raw_score = 0.30 * line_sim + 0.35 * token_sim + 0.35 * struct_sim
 
+    # --- Structural boost: if AST is near-identical but text differs,
+    #     this is classic rename-only plagiarism → boost score ---
+    if struct_sim > 0.85 and line_sim < 0.6:
+        boost = 0.15 * (struct_sim - 0.85) / 0.15   # scales 0–0.15 as struct_sim goes 0.85→1.0
+        raw_score = min(1.0, raw_score + boost)
+
+    # --- Power curve to amplify high similarity ---
+    curved_score = raw_score ** 0.85
+
+    score = round(max(0, min(curved_score * 100, 100)), 2)
+
+    # --- Diff preview ---
     diff_lines = []
     for d in difflib.unified_diff([l.rstrip() for l in code_a.splitlines()],
                                   [l.rstrip() for l in code_b.splitlines()],
@@ -104,11 +143,14 @@ def compare_codes(code_a, code_b, language=None):
             break
     diff_preview = "\n".join(diff_lines)
 
+    # --- Explanation ---
     explanation = (
-        f"- Line similarity: {round(line_sim * 100,2)}%\n"
-        f"- Token similarity: {round(token_sim * 100,2)}%\n"
-        f"- Structural similarity: {round(struct_sim * 100,2)}%\n"
-        "Weighted: 40% lines, 40% tokens, 20% structure."
+        f"- Line similarity: {round(line_sim * 100, 2)}%\n"
+        f"- Token similarity (identifiers normalized): {round(token_sim * 100, 2)}%\n"
+        f"- Structural similarity (AST normalized): {round(struct_sim * 100, 2)}%\n"
+        f"- Structural boost applied: {'Yes' if struct_sim > 0.85 and line_sim < 0.6 else 'No'}\n"
+        f"- Weights: 30% lines, 35% tokens, 35% structure\n"
+        f"- Final score (after power curve): {score}%"
     )
 
     return {"score": score, "explanation": explanation, "diff_preview": diff_preview}

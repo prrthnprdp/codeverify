@@ -16,14 +16,6 @@ def safe_preview(*sections, max_chars=2000):
         return combined[:max_chars] + "\n... (preview truncated)"
     return combined
 
-def load_code_from_file(uploaded_file):
-    try:
-        data = uploaded_file.read()
-        if isinstance(data, bytes):
-            return data.decode("utf-8", errors="replace")
-        return str(data)
-    except Exception:
-        return ""
 
 def detect_language(filename):
     if filename.endswith(".py"):
@@ -33,5 +25,4 @@ def detect_language(filename):
     elif filename.endswith(".cpp"):
         return "C++"
 
-    return "Unknown"
     return "Unknown"

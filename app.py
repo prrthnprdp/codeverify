@@ -5,6 +5,24 @@ import streamlit as st
 
 st.set_page_config(page_title="CodeVerify - Plagiarism & AI Code Detector", layout="wide")
 
+st.markdown("""
+<style>
+    h1 {
+        font-size: 52px !important;
+    }
+    h3 {
+        font-size: 40px !important;
+    }
+    .stMarkdown p, .stMarkdown li {
+        font-size: 32px !important;
+        line-height: 1.4 !important;
+    }
+    [data-testid="stSidebar"] span, [data-testid="stSidebar"] p, [data-testid="stSidebar"] li, [data-testid="stSidebarNav"] li {
+        font-size: 32px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Header
 st.title("📘 CodeVerify: Academic Code Plagiarism & AI Detection")
 st.markdown(
