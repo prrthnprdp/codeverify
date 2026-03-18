@@ -1,0 +1,146 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+html, body, [class*="css"]  {
+    font-family: 'Outfit', sans-serif !important;
+}
+
+/* Base Headings */
+@keyframes colorCycle {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+h1, .stMarkdown h1, div[data-testid="stHeadingWithActionElements"] h1 {
+    font-size: 52px !important;
+    background: linear-gradient(90deg, #00c3ff, #ff00c3, #ffff1c) !important;
+    background-clip: text !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-size: 200% auto !important;
+    animation: textShine 3s linear infinite alternate, colorCycle 6s linear infinite !important;
+}
+
+h3, h2, .stMarkdown h3, .stMarkdown h2, div[data-testid="stHeadingWithActionElements"] h3, div[data-testid="stHeadingWithActionElements"] h2 {
+    font-size: 40px !important;
+    background: linear-gradient(90deg, #00c3ff, #ff00c3, #ffff1c) !important;
+    background-clip: text !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-size: 200% auto !important;
+    animation: textShine 3s linear infinite alternate, colorCycle 6s linear infinite !important;
+}
+
+/* Base text elements (Zoomed as requested) */
+.stMarkdown p, .stMarkdown li {
+    font-size: 32px !important;
+    line-height: 1.6 !important;
+    color: #e0e0e0;
+}
+
+[data-testid="stSidebar"] span, [data-testid="stSidebar"] p, [data-testid="stSidebar"] li, [data-testid="stSidebarNav"] li {
+    font-size: 32px !important;
+}
+
+/* Glassmorphism for cards */
+div[data-testid="stVerticalBlock"] div[style*="column"] > div {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+div[data-testid="stVerticalBlock"] div[style*="column"] > div:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 32px rgba(0, 195, 255, 0.15);
+    border-color: rgba(0, 195, 255, 0.3);
+}
+
+/* Primary Button Styling */
+button[kind="primary"] {
+    background: linear-gradient(90deg, #ff00c3, #00c3ff);
+    background-size: 200% auto;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(255, 0, 195, 0.4);
+    transition: all 0.4s ease-in-out !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    font-size: 24px !important;
+    padding: 14px 28px !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+button[kind="primary"]:hover {
+    background-position: right center;
+    box-shadow: 0 6px 20px rgba(0, 195, 255, 0.6);
+    transform: scale(1.05);
+}
+
+/* Secondary Button Styling */
+button[kind="secondary"] {
+    background: transparent !important;
+    border: 2px solid #00c3ff !important;
+    color: #00c3ff !important;
+    transition: all 0.3s ease;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 22px !important;
+    padding: 12px 24px !important;
+}
+
+button[kind="secondary"]:hover {
+    background: rgba(0, 195, 255, 0.1) !important;
+    box-shadow: 0 0 15px rgba(0, 195, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Metrics Styling */
+[data-testid="stMetricValue"] {
+    font-size: 3.5rem !important;
+    font-weight: 700 !important;
+    color: #00c3ff !important;
+    text-shadow: 0 0 15px rgba(0, 195, 255, 0.6);
+}
+[data-testid="stMetricLabel"] {
+    font-size: 1.5rem !important;
+    color: #e0e0e0 !important;
+}
+[data-testid="stMetricDelta"] {
+    font-size: 1.2rem !important;
+}
+
+/* Text Areas and Inputs styling */
+.stTextArea textarea, .stTextInput input, .stFileUploader section {
+    background: rgba(26, 28, 35, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+    transition: all 0.3s ease;
+}
+
+.stTextArea textarea:focus, .stTextInput input:focus, .stFileUploader section:hover {
+    border-color: #00c3ff !important;
+    box-shadow: 0 0 10px rgba(0, 195, 255, 0.2) !important;
+}
+
+/* Select box styling */
+.stSelectbox div[data-baseweb="select"] {
+    background: rgba(26, 28, 35, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 10px !important;
+}
+
+/* Animations */
+@keyframes textShine {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 100% 50%;
+    }
+}

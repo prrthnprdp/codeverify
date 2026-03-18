@@ -2,27 +2,12 @@ import streamlit as st
 from plagiarism import compare_codes
 from ai_detection import analyze_ai_likelihood
 from pdf_report import generate_pdf_report_bytes
-from utils import load_code_from_file
+from utils import load_code_from_file, inject_custom_css
 
 st.set_page_config(page_title="Plagiarism Checker", layout="wide")
 
-st.markdown("""
-<style>
-    h1 {
-        font-size: 52px !important;
-    }
-    h3 {
-        font-size: 40px !important;
-    }
-    .stMarkdown p, .stMarkdown li {
-        font-size: 32px !important;
-        line-height: 1.4 !important;
-    }
-    [data-testid="stSidebar"] span, [data-testid="stSidebar"] p, [data-testid="stSidebar"] li, [data-testid="stSidebarNav"] li {
-        font-size: 32px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+inject_custom_css()
+
 
 st.title("🔍 Plagiarism Checker")
 

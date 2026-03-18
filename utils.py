@@ -1,3 +1,5 @@
+import streamlit as st
+
 def load_code_from_file(uploaded_file):
     try:
         data = uploaded_file.read()
@@ -26,3 +28,11 @@ def detect_language(filename):
         return "C++"
 
     return "Unknown"
+
+def inject_custom_css():
+    try:
+        with open("assets/style.css", "r") as f:
+            css = f.read()
+        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+    except FileNotFoundError:
+        pass
