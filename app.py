@@ -4,40 +4,45 @@
 import streamlit as st
 from utils import inject_custom_css
 
-st.set_page_config(page_title="CodeVerify - Plagiarism & AI Code Detector", layout="wide")
+st.set_page_config(page_title="CodeVerify - Home", layout="wide")
 
 inject_custom_css()
 
-
 # Header
-st.title("📘 CodeVerify: Academic Code Plagiarism & AI Detection")
+st.title("CodeVerify")
+st.markdown(
+    "### Academic Code Plagiarism & AI Detection"
+)
 st.markdown(
     "A comprehensive offline tool for detecting plagiarism and AI-generated code patterns. "
-    "Uses logical, statistical, and heuristic methods only—no AI models, no external APIs."
+    "Uses logical, statistical, and heuristic methods only—no AI models or external APIs."
 )
 
 st.divider()
 
-# Feature cards
+# Feature Cards
+st.divider()
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("🔍 Plagiarism Checker")
-    st.write(
-        "Compare two code snippets to detect plagiarism, code reuse, and structural similarities. "
-        "Analyzes token patterns, line-by-line overlap, and code structure."
-    )
-    if st.button("Open Plagiarism Checker", key="plagiarism_btn"):
-        st.switch_page("pages/1_Plagiarism_Checker.py")
+    with st.container():
+        st.subheader("Plagiarism Checker")
+        st.write(
+            "Compare two code snippets to detect plagiarism, code reuse, and structural similarities. "
+            "Analyzes token patterns, line-by-line overlap, and code structure."
+        )
+        if st.button("Open Plagiarism Checker", key="plagiarism_btn", type="primary"):
+            st.switch_page("pages/1_Plagiarism_Checker.py")
 
 with col2:
-    st.subheader("🤖 AI Detector")
-    st.write(
-        "Analyze code for evidence of AI-generated patterns. "
-        "Examines indentation uniformity, comment density, repetitive structures, and identifier entropy."
-    )
-    if st.button("Open AI Detector", key="ai_btn"):
-        st.switch_page("pages/2_AI_Detector.py")
+    with st.container():
+        st.subheader("AI Detector")
+        st.write(
+            "Analyze code for evidence of AI-generated patterns. "
+            "Examines indentation uniformity, comment density, repetitive structures, and identifier entropy."
+        )
+        if st.button("Open AI Detector", key="ai_btn", type="primary"):
+            st.switch_page("pages/2_AI_Detector.py")
 
 st.divider()
 

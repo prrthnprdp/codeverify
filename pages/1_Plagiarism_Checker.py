@@ -9,30 +9,28 @@ st.set_page_config(page_title="Plagiarism Checker", layout="wide")
 inject_custom_css()
 
 
-st.title("🔍 Plagiarism Checker")
+st.title("Plagiarism Checker")
 
-st.markdown("""
-You can either **upload a file** or **paste/type code manually** for both the original and suspected code. If both are provided, the manually entered code will be used.
+st.info("""
+Compare two code snippets to detect plagiarism. You can either **upload files** or **paste code manually**.
 """)
 
-# --- Original Code Input ---
-st.subheader("📄 Original Code")
-col1, col2 = st.columns([2, 1])
-with col1:
-    original_code_text = st.text_area("Paste or type the original code here:", height=300, key="original_code")
-with col2:
-    original_file = st.file_uploader("Or upload original code file (.py, .c, .cpp)", type=["py", "c", "cpp"], key="original_file")
-
-# --- Suspected Code Input ---
-st.subheader("📄 Suspected Code")
-col3, col4 = st.columns([2, 1])
-with col3:
-    suspected_code_text = st.text_area("Paste or type the suspected code here:", height=300, key="suspected_code")
-with col4:
-    suspected_file = st.file_uploader("Or upload suspected code file (.py, .c, .cpp)", type=["py", "c", "cpp"], key="suspected_file")
+# --- Input Section ---
+with st.container():
+    col_orig, col_susp = st.columns(2)
+    
+    with col_orig:
+        st.subheader("Original Code")
+        original_code_text = st.text_area("Paste code here:", height=300, key="original_code")
+        original_file = st.file_uploader("Or upload file", type=["py", "c", "cpp"], key="original_file")
+        
+    with col_susp:
+        st.subheader("Suspected Code")
+        suspected_code_text = st.text_area("Paste code here:", height=300, key="suspected_code")
+        suspected_file = st.file_uploader("Or upload file", type=["py", "c", "cpp"], key="suspected_file")
 
 # --- Language Selection ---
-language = st.selectbox("Select Programming Language", ["Python", "C", "C++"])
+language = st.selectbox("Programming Language", ["Python", "C", "C++"])
 
 # --- Compare Button ---
 if st.button("Compare for Plagiarism"):
@@ -48,13 +46,17 @@ if st.button("Compare for Plagiarism"):
             result = compare_codes(original_code, suspected_code, language)
 
         st.success("Analysis complete!")
+        
+        res_col1, res_col2 = st.columns([1, 2])
+        with res_col1:
+            st.metric("Plagiarism Score", f"{result['score']}%")
+        
+        with res_col2:
+            st.subheader("Explanation")
+            st.info(result["explanation"])
 
-        st.metric("Plagiarism Score", f"{result['score']}%")
-        st.subheader("Explanation")
-        st.text(result["explanation"])
-
-        st.subheader("Similar Code Sections")
-        st.code(result["diff_preview"], language="text")
+        with st.expander("View Similar Code Sections", expanded=True):
+            st.code(result["diff_preview"], language="mark")
 
         st.subheader("📄 Download PDF Report")
         original_name = original_file.name if original_file else "Original_Code_Input"
